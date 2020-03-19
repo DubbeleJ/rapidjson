@@ -301,3 +301,73 @@ TEST_P(Draft04, TestSuite) {
         validatorAllocator.Clear();
     }
 }
+
+
+class Draft06 : public Conformance {
+public:
+    Draft06() : Conformance() {
+        strncpy(draftVersion, "draft6", 7);
+        draftVersion[6] = '\0';
+    }
+};
+const char* draft06files[] = {
+    "additionalItems.json",
+    "additionalProperties.json",
+    "allOf.json",
+    "anyOf.json",
+    "boolean_schema.json",
+    "const.json",
+    "contains.json",
+    "default.json",
+    "definitions.json",
+    "dependencies.json",
+    "enum.json",
+    "exclusiveMaximum.json",
+    "exclusiveMinimum.json",
+    "format.json",
+    "items.json",
+    "maximum.json",
+    "maxItems.json",
+    "maxLength.json",
+    "maxProperties.json",
+    "minimum.json",
+    "minItems.json",
+    "minLength.json",
+    "minProperties.json",
+    "multipleOf.json",
+    "not.json",
+    "oneOf.json",
+    "pattern.json",
+    "patternProperties.json",
+    "properties.json",
+    "propertyNames.json",
+    "ref.json",
+    "refRemote.json",
+    "required.json",
+    "type.json",
+    "uniqueItems.json"
+};
+
+INSTANTIATE_TEST_CASE_P(Draft06, Draft06, ::testing::ValuesIn(draft06files));
+
+TEST_P(Draft06, TestSuite) {
+    char validatorBuffer[65536];
+    MemoryPoolAllocator<> validatorAllocator(validatorBuffer, sizeof(validatorBuffer));
+
+    for (TestSuiteList::const_iterator itr = testSuites.begin(); itr != testSuites.end(); ++itr) {
+        const TestSuite& ts = **itr;
+        GenericSchemaValidator<SchemaDocument, BaseReaderHandler<UTF8<> >, MemoryPoolAllocator<> >  validator(*ts.schema, &validatorAllocator);
+        for (DocumentList::const_iterator testItr = ts.tests.begin(); testItr != ts.tests.end(); ++testItr) {
+            validator.Reset();
+            std::cout  << "\n" << ts.description << " :: " << (*testItr)->description << " :: " << GetParam() << "\n";
+            if ((*testItr)->valid) {
+                EXPECT_TRUE((*testItr)->document->Accept(validator))
+                                << ts.description << " :: " << (*testItr)->description << " :: " << GetParam() << "\n";
+            } else {
+                EXPECT_FALSE((*testItr)->document->Accept(validator))
+                                << ts.description << " :: " << (*testItr)->description << " :: " << GetParam() << "\n";
+            }
+        }
+        validatorAllocator.Clear();
+    }
+}
