@@ -59,6 +59,48 @@ static char* ReadFile(const char* filename, Allocator& allocator) {
 
 RAPIDJSON_DIAG_POP
 
+class RemoteProvider : public IRemoteSchemaDocumentProvider
+{
+public:
+    RemoteProvider() = default;
+
+    const SchemaDocument* GetRemoteDocument(const Ch *uri, SizeType /*length*/) override {
+        const char removal[] = "http://localhost:1234/";
+        char filename[FILENAME_MAX];
+        const char* localFile = strstr(uri, removal);
+
+        if (localFile != nullptr) {
+            char referenceFile[FILENAME_MAX];
+            strncpy(referenceFile, &uri[sizeof(removal) - 1], FILENAME_MAX);
+            sprintf(filename, "jsonschema/remotes/%s", referenceFile);
+
+            char* internalRef = strstr(filename, "#");
+            if (internalRef != nullptr) {
+                *internalRef = '\0';
+            }
+
+            char jsonBuffer[65536];
+            MemoryPoolAllocator<> jsonAllocator(jsonBuffer, sizeof(jsonBuffer));
+            char* json = ReadFile(filename, jsonAllocator);
+            if (!json) {
+                printf("json test suite file %s not found", filename);
+                return nullptr;
+            }
+
+            Document d;
+            d.Parse(json);
+            if (d.HasParseError()) {
+                printf("json test suite file %s has parse error", filename);
+                return nullptr;
+            }
+            return new SchemaDocument(d);
+        } else {
+            printf("external file %s not supported", uri);
+            return nullptr;
+        }
+    }
+};
+
 class Conformance : public ::testing::TestWithParam<const char*> {
 public:
     Conformance() :
@@ -90,7 +132,8 @@ public:
                 continue;
 
             TestSuite* ts = new TestSuite;
-            ts->schema = new SchemaDocument((*schemaItr)["schema"]);
+            RemoteProvider provider;
+            ts->schema = new SchemaDocument((*schemaItr)["schema"], nullptr, 0, &provider);
 
             ts->description = new char[(*schemaItr)["description"].GetStringLength() + 1];
             strncpy(ts->description, (*schemaItr)["description"].GetString(), (*schemaItr)["description"].GetStringLength());
@@ -130,10 +173,10 @@ private:
     static bool IsExcludeTestSuite(const std::string& description) {
         const char* excludeTestSuites[] = {
             //lost failing these tests
-            "remote ref",
+//            "remote ref",
             "remote ref, containing refs itself",
-            "fragment within remote ref",
-            "ref within remote ref",
+//            "fragment within remote ref",
+//            "ref within remote ref",
             "change resolution scope",
             // these below were added to get jsck in the benchmarks)
             "uniqueItems validation",
@@ -258,4 +301,3 @@ TEST_P(Draft04, TestSuite) {
         validatorAllocator.Clear();
     }
 }
-
