@@ -241,76 +241,15 @@ protected:
     TestSuiteList testSuites;
 };
 
-class Draft04 : public Conformance {
+
+class Draft07 : public Conformance {
 public:
-    Draft04() : Conformance() {
-        strncpy(draftVersion, "draft4", 7);
+    Draft07() : Conformance() {
+        strncpy(draftVersion, "draft7", 7);
         draftVersion[6] = '\0';
     }
 };
-const char* draft04files[] = {
-        "additionalItems.json",
-        "additionalProperties.json",
-        "allOf.json",
-        "anyOf.json",
-        "default.json",
-        "definitions.json",
-        "dependencies.json",
-        "enum.json",
-        "items.json",
-        "maximum.json",
-        "maxItems.json",
-        "maxLength.json",
-        "maxProperties.json",
-        "minimum.json",
-        "minItems.json",
-        "minLength.json",
-        "minProperties.json",
-        "multipleOf.json",
-        "not.json",
-        "oneOf.json",
-        "pattern.json",
-        "patternProperties.json",
-        "properties.json",
-        "ref.json",
-        "refRemote.json",
-        "required.json",
-        "type.json",
-        "uniqueItems.json"
-};
-
-INSTANTIATE_TEST_CASE_P(Draft04, Draft04, ::testing::ValuesIn(draft04files));
-
-TEST_P(Draft04, TestSuite) {
-    char validatorBuffer[65536];
-    MemoryPoolAllocator<> validatorAllocator(validatorBuffer, sizeof(validatorBuffer));
-
-    for (TestSuiteList::const_iterator itr = testSuites.begin(); itr != testSuites.end(); ++itr) {
-        const TestSuite& ts = **itr;
-        GenericSchemaValidator<SchemaDocument, BaseReaderHandler<UTF8<> >, MemoryPoolAllocator<> >  validator(*ts.schema, &validatorAllocator);
-        for (DocumentList::const_iterator testItr = ts.tests.begin(); testItr != ts.tests.end(); ++testItr) {
-            validator.Reset();
-            if ((*testItr)->valid) {
-                EXPECT_TRUE((*testItr)->document->Accept(validator))
-                                    << ts.description << " :: " << (*testItr)->description << "\n";
-            } else {
-                EXPECT_FALSE((*testItr)->document->Accept(validator))
-                                    << ts.description << " :: " << (*testItr)->description << "\n";
-            }
-        }
-        validatorAllocator.Clear();
-    }
-}
-
-
-class Draft06 : public Conformance {
-public:
-    Draft06() : Conformance() {
-        strncpy(draftVersion, "draft6", 7);
-        draftVersion[6] = '\0';
-    }
-};
-const char* draft06files[] = {
+const char* draft07files[] = {
     "additionalItems.json",
     "additionalProperties.json",
     "allOf.json",
@@ -325,6 +264,7 @@ const char* draft06files[] = {
     "exclusiveMaximum.json",
     "exclusiveMinimum.json",
     "format.json",
+    "if-then-else.json",
     "items.json",
     "maximum.json",
     "maxItems.json",
@@ -348,9 +288,9 @@ const char* draft06files[] = {
     "uniqueItems.json"
 };
 
-INSTANTIATE_TEST_CASE_P(Draft06, Draft06, ::testing::ValuesIn(draft06files));
+INSTANTIATE_TEST_CASE_P(Draft07, Draft07, ::testing::ValuesIn(draft07files));
 
-TEST_P(Draft06, TestSuite) {
+TEST_P(Draft07, TestSuite) {
     char validatorBuffer[65536];
     MemoryPoolAllocator<> validatorAllocator(validatorBuffer, sizeof(validatorBuffer));
 
