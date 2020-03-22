@@ -441,10 +441,18 @@ public:
         maxLength_(~SizeType(0)),
         exclusiveMinimum_(false),
         exclusiveMaximum_(false),
+        booleanType_(false),
+        booleanValue_(false),
         defaultValueLength_(0)
     {
         typedef typename ValueType::ConstValueIterator ConstValueIterator;
         typedef typename ValueType::ConstMemberIterator ConstMemberIterator;
+
+        if (value.IsBool()) {
+            booleanType_ = true;
+            booleanValue_ = value.GetBool();
+            return;
+        }
 
         if (!value.IsObject())
             return;
@@ -670,6 +678,10 @@ public:
 
     const PointerType& GetPointer() const {
         return pointer_;
+    }
+
+    bool BooleanTypeAccept() const {
+        return (booleanType_) ? booleanValue_ : true;
     }
 
     bool BeginValue(Context& context) const {
@@ -1437,6 +1449,9 @@ private:
     SValue multipleOf_;
     bool exclusiveMinimum_;
     bool exclusiveMaximum_;
+
+    bool booleanType_;
+    bool booleanValue_;
     
     SizeType defaultValueLength_;
 };
@@ -1635,17 +1650,21 @@ private:
         if (schema)
             *schema = typeless_;
 
-        if (v.GetType() == kObjectType) {
+        if (v.GetType() == kObjectType || v.GetType() == kTrueType || v.GetType() == kFalseType) {
             const SchemaType* s = GetSchema(pointer);
             if (!s)
                 CreateSchema(schema, pointer, v, document);
 
-            for (typename ValueType::ConstMemberIterator itr = v.MemberBegin(); itr != v.MemberEnd(); ++itr)
-                CreateSchemaRecursive(0, pointer.Append(itr->name, allocator_), itr->value, document);
+            if (v.GetType() == kObjectType)
+                for (typename ValueType::ConstMemberIterator itr = v.MemberBegin(); itr != v.MemberEnd(); ++itr)
+                    CreateSchemaRecursive(0, pointer.Append(itr->name, allocator_), itr->value, document);
         }
         else if (v.GetType() == kArrayType)
             for (SizeType i = 0; i < v.Size(); i++)
                 CreateSchemaRecursive(0, pointer.Append(i, allocator_), v[i], document);
+
+
+// TODO: Implement kFalseType && kTrueType schemas.
     }
 
     void CreateSchema(const SchemaType** schema, const PointerType& pointer, const ValueType& v, const ValueType& document) {
@@ -1657,6 +1676,13 @@ private:
                 if (schema)
                     *schema = s;
             }
+        }
+        else if (v.IsBool()) {
+            SchemaType* s = new (allocator_->Malloc(sizeof(SchemaType))) SchemaType(this, pointer, v, document, allocator_);
+            new (schemaMap_.template Push<SchemaEntry>()) SchemaEntry(pointer, s, true, allocator_);
+            if (schema)
+                *schema = s;
+
         }
     }
 
@@ -2075,7 +2101,7 @@ RAPIDJSON_MULTILINEMACRO_END
 
 #define RAPIDJSON_SCHEMA_HANDLE_BEGIN_(method, arg1)\
     if (!valid_) return false; \
-    if (!BeginValue() || !CurrentSchema().method arg1) {\
+    if (!BeginValue() || !CurrentSchema().BooleanTypeAccept() || !CurrentSchema().method arg1) {\
         RAPIDJSON_SCHEMA_HANDLE_BEGIN_VERBOSE_();\
         return valid_ = false;\
     }

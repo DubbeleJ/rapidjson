@@ -182,6 +182,26 @@ TEST(SchemaValidator, Typeless) {
     VALIDATE(s, "{ \"an\": [ \"arbitrarily\", \"nested\" ], \"data\": \"structure\" }", true);
 }
 
+TEST(SchemaValidator, TrueBooleanSchema) {
+    Document sd;
+    sd.Parse("true");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "42", true);
+    VALIDATE(s, "\"I'm a string\"", true);
+    VALIDATE(s, "{ \"an\": [ \"arbitrarily\", \"nested\" ], \"data\": \"structure\" }", true);
+}
+
+TEST(SchemaValidator, FalseBooleanSchema) {
+    Document sd;
+    sd.Parse("false");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "42", false);
+    VALIDATE(s, "\"I'm a string\"", false);
+    VALIDATE(s, "{ \"an\": [ \"arbitrarily\", \"nested\" ], \"data\": \"structure\" }", false);
+}
+
 TEST(SchemaValidator, MultiType) {
     Document sd;
     sd.Parse("{ \"type\": [\"number\", \"string\"] }");
@@ -255,6 +275,23 @@ TEST(SchemaValidator, AllOf) {
             "    \"expected\": [\"string\"], \"actual\": \"integer\""
             "}}");
     }
+    {
+        Document sd;
+        sd.Parse("{\"allOf\": [true, true]}");
+        SchemaDocument s(sd);
+        VALIDATE(s, "\"ok\"", true);
+        VALIDATE(s, "{}", true);
+        VALIDATE(s, "3", true);
+    }
+    {
+        Document sd;
+        sd.Parse("{\"allOf\": [true, false]}");
+        SchemaDocument s(sd);
+        VALIDATE(s, "\"ok\"", false);
+        VALIDATE(s, "{}", false);
+        VALIDATE(s, "3", false);
+    }
+
 }
 
 TEST(SchemaValidator, AnyOf) {
