@@ -413,6 +413,7 @@ public:
         typeless_(schemaDocument->GetTypeless()),
         enum_(),
         enumCount_(),
+        const_(),
         not_(),
         type_((1 << kTotalSchemaType) - 1), // typeless
         validatorCount_(),
@@ -478,6 +479,17 @@ public:
                     enum_[enumCount_++] = h.GetHashCode();
                 }
             }
+
+        if (const ValueType* v = GetMember(value, GetConstString()))
+        {
+            const_ = static_cast<uint64_t*>(allocator_->Malloc(sizeof(uint64_t)));
+            typedef Hasher<EncodingType, MemoryPoolAllocator<> > ConstHasherType;
+            char buffer[256u + 24];
+            MemoryPoolAllocator<> hasherAllocator(buffer, sizeof(buffer));
+            ConstHasherType h(&hasherAllocator, 256);
+            v->Accept(h);
+            *const_ = h.GetHashCode();
+        }
 
         if (schemaDocument) {
             AssignIfExist(allOf_, *schemaDocument, p, value, GetAllOfString(), document);
@@ -653,6 +665,7 @@ public:
 
     ~Schema() {
         AllocatorType::Free(enum_);
+        AllocatorType::Free(const_);
         if (properties_) {
             for (SizeType i = 0; i < propertyCount_; i++)
                 properties_[i].~Property();
@@ -751,6 +764,14 @@ public:
             context.error_handler.DisallowedValue();
             RAPIDJSON_INVALID_KEYWORD_RETURN(GetEnumString());
             foundEnum:;
+        }
+
+        if (const_) {
+            const uint64_t h = context.factory.GetHashCode(context.hasher);
+            if (*const_ != h) {
+                context.error_handler.DisallowedValue();
+                RAPIDJSON_INVALID_KEYWORD_RETURN(GetConstString());
+            }
         }
 
         if (allOf_.schemas)
@@ -1041,6 +1062,7 @@ public:
     RAPIDJSON_STRING_(Integer, 'i', 'n', 't', 'e', 'g', 'e', 'r')
     RAPIDJSON_STRING_(Type, 't', 'y', 'p', 'e')
     RAPIDJSON_STRING_(Enum, 'e', 'n', 'u', 'm')
+    RAPIDJSON_STRING_(Const, 'c', 'o', 'n', 's', 't')
     RAPIDJSON_STRING_(AllOf, 'a', 'l', 'l', 'O', 'f')
     RAPIDJSON_STRING_(AnyOf, 'a', 'n', 'y', 'O', 'f')
     RAPIDJSON_STRING_(OneOf, 'o', 'n', 'e', 'O', 'f')
@@ -1194,7 +1216,7 @@ private:
     }
 
     bool CreateParallelValidator(Context& context) const {
-        if (enum_ || context.arrayUniqueness)
+        if (enum_ || const_ || context.arrayUniqueness)
             context.hasher = context.factory.CreateHasher();
 
         if (validatorCount_) {
@@ -1411,6 +1433,7 @@ private:
     const SchemaType* typeless_;
     uint64_t* enum_;
     SizeType enumCount_;
+    uint64_t* const_;
     SchemaArray allOf_;
     SchemaArray anyOf_;
     SchemaArray oneOf_;

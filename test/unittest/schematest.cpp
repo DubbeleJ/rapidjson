@@ -251,6 +251,78 @@ TEST(SchemaValidator, Enum_InvalidType) {
         "}}");
 }
 
+TEST(SchemaValidator, const_Typed)
+{
+    Document sd;
+    sd.Parse("{ \"type\": \"string\", \"const\": \"red\" }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "\"red\"", true);
+    VALIDATE(s, "\"blue\"", false);
+    VALIDATE(s, "6", false);
+}
+
+TEST(SchemaValidator, const_Typless)
+{
+    Document sd;
+    sd.Parse("{ \"const\": 2 }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "2", true);
+    VALIDATE(s, "\"2\"", false);
+}
+
+TEST(SchemaValidator, const_BooleanTrue)
+{
+    Document sd;
+    sd.Parse("{ \"const\": true }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "true", true);
+    VALIDATE(s, "1", false);
+}
+
+TEST(SchemaValidator, const_BooleanFalse)
+{
+    Document sd;
+    sd.Parse("{ \"const\": false }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "false", true);
+    VALIDATE(s, "0", false);
+}
+
+TEST(SchemaValidator, const_Null)
+{
+    Document sd;
+    sd.Parse("{ \"const\": null }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "null", true);
+    VALIDATE(s, "0", false);
+}
+
+TEST(SchemaValidator, const_Object)
+{
+    Document sd;
+    sd.Parse("{ \"const\": { \"foo\": \"bar\", \"fish\": \"tail\" } }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "{ \"foo\": \"bar\", \"fish\": \"tail\" }", true);
+    VALIDATE(s, "{ \"other\": 3 }", false);
+}
+
+TEST(SchemaValidator, const_Array)
+{
+    Document sd;
+    sd.Parse("{ \"const\": [ \"foo\", \"bar\", \"fish\", \"tail\", 5 ] }");
+    SchemaDocument s(sd);
+
+    VALIDATE(s, "[ \"foo\", \"bar\", \"fish\", \"tail\", 5 ]", true);
+    VALIDATE(s, "[ \"foo\", \"bar\", \"fish\", 5 ]", false);
+    VALIDATE(s, "{ \"other\": 3 }", false);
+}
+
 TEST(SchemaValidator, AllOf) {
     {
         Document sd;
