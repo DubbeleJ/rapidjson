@@ -1808,10 +1808,17 @@ TEST(SchemaValidator, TestSuite) {
         "additionalProperties.json",
         "allOf.json",
         "anyOf.json",
+        "boolean_schema.json",
+        "const.json",
+        "contains.json",
         "default.json",
         "definitions.json",
         "dependencies.json",
         "enum.json",
+        "exclusiveMaximum.json",
+        "exclusiveMinimum.json",
+        "format.json",
+        "if-then-else.json",
         "items.json",
         "maximum.json",
         "maxItems.json",
@@ -1827,6 +1834,7 @@ TEST(SchemaValidator, TestSuite) {
         "pattern.json",
         "patternProperties.json",
         "properties.json",
+        "propertyNames.json",
         "ref.json",
         "refRemote.json",
         "required.json",
@@ -1856,7 +1864,7 @@ TEST(SchemaValidator, TestSuite) {
 
     for (size_t i = 0; i < sizeof(filenames) / sizeof(filenames[0]); i++) {
         char filename[FILENAME_MAX];
-        sprintf(filename, "jsonschema/tests/draft4/%s", filenames[i]);
+        sprintf(filename, "jsonschema/tests/draft7/%s", filenames[i]);
         char* json = ReadFile(filename, jsonAllocator);
         if (!json) {
             printf("json test suite file %s not found", filename);
