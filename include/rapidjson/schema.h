@@ -415,9 +415,15 @@ public:
         enumCount_(),
         const_(),
         not_(),
+        if_(),
+        then_(),
+        else_(),
         type_((1 << kTotalSchemaType) - 1), // typeless
         validatorCount_(),
         notValidatorIndex_(),
+        ifValidatorIndex_(),
+        thenValidatorIndex_(),
+        elseValidatorIndex_(),
         properties_(),
         additionalPropertiesSchema_(),
         patternProperties_(),
@@ -500,6 +506,24 @@ public:
         if (const ValueType* v = GetMember(value, GetNotString())) {
             schemaDocument->CreateSchema(&not_, p.Append(GetNotString(), allocator_), *v, document);
             notValidatorIndex_ = validatorCount_;
+            validatorCount_++;
+        }
+
+        if (const ValueType* v = GetMember(value, GetIfString())) {
+            schemaDocument->CreateSchema(&if_, p.Append(GetIfString(), allocator_), *v, document);
+            ifValidatorIndex_ = validatorCount_;
+            validatorCount_++;
+        }
+
+        if (const ValueType* v = GetMember(value, GetThenString())) {
+            schemaDocument->CreateSchema(&then_, p.Append(GetThenString(), allocator_), *v, document);
+            thenValidatorIndex_ = validatorCount_;
+            validatorCount_++;
+        }
+
+        if (const ValueType* v = GetMember(value, GetElseString())) {
+            schemaDocument->CreateSchema(&else_, p.Append(GetElseString(), allocator_), *v, document);
+            elseValidatorIndex_ = validatorCount_;
             validatorCount_++;
         }
 
@@ -811,6 +835,20 @@ public:
             RAPIDJSON_INVALID_KEYWORD_RETURN(GetNotString());
         }
 
+        if (if_ && (then_ || else_)) {
+            if (context.validators[ifValidatorIndex_]->IsValid()) {
+                if (then_ && !context.validators[thenValidatorIndex_]->IsValid()) {
+                    context.error_handler.Disallowed();
+                    RAPIDJSON_INVALID_KEYWORD_RETURN(GetThenString());
+                }
+            } else {
+                if (else_ && !context.validators[elseValidatorIndex_]->IsValid()) {
+                    context.error_handler.Disallowed();
+                    RAPIDJSON_INVALID_KEYWORD_RETURN(GetElseString());
+                }
+            }
+        }
+
         return true;
     }
 
@@ -1066,6 +1104,9 @@ public:
     RAPIDJSON_STRING_(AllOf, 'a', 'l', 'l', 'O', 'f')
     RAPIDJSON_STRING_(AnyOf, 'a', 'n', 'y', 'O', 'f')
     RAPIDJSON_STRING_(OneOf, 'o', 'n', 'e', 'O', 'f')
+    RAPIDJSON_STRING_(If, 'i', 'f')
+    RAPIDJSON_STRING_(Then, 't', 'h', 'e', 'n')
+    RAPIDJSON_STRING_(Else, 'e', 'l', 's', 'e')
     RAPIDJSON_STRING_(Not, 'n', 'o', 't')
     RAPIDJSON_STRING_(Properties, 'p', 'r', 'o', 'p', 'e', 'r', 't', 'i', 'e', 's')
     RAPIDJSON_STRING_(Required, 'r', 'e', 'q', 'u', 'i', 'r', 'e', 'd')
@@ -1235,7 +1276,16 @@ private:
             
             if (not_)
                 context.validators[notValidatorIndex_] = context.factory.CreateSchemaValidator(*not_);
-            
+
+            if (if_)
+                context.validators[ifValidatorIndex_] = context.factory.CreateSchemaValidator(*if_);
+
+            if (then_)
+                context.validators[thenValidatorIndex_] = context.factory.CreateSchemaValidator(*then_);
+
+            if (else_)
+                context.validators[elseValidatorIndex_] = context.factory.CreateSchemaValidator(*else_);
+
             if (hasSchemaDependencies_) {
                 for (SizeType i = 0; i < propertyCount_; i++)
                     if (properties_[i].dependenciesSchema)
@@ -1438,9 +1488,15 @@ private:
     SchemaArray anyOf_;
     SchemaArray oneOf_;
     const SchemaType* not_;
+    const SchemaType* if_;
+    const SchemaType* then_;
+    const SchemaType* else_;
     unsigned type_; // bitmask of kSchemaType
     SizeType validatorCount_;
     SizeType notValidatorIndex_;
+    SizeType ifValidatorIndex_;
+    SizeType thenValidatorIndex_;
+    SizeType elseValidatorIndex_;
 
     Property* properties_;
     const SchemaType* additionalPropertiesSchema_;
