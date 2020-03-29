@@ -201,6 +201,8 @@ public:
     virtual void AddDependencySchemaError(const SValue& souceName, ISchemaValidator* subvalidator) = 0;
     virtual bool EndDependencyErrors() = 0;
 
+    virtual void NotMatchThen(ISchemaValidator* subvalidator) = 0;
+    virtual void NotMatchElse(ISchemaValidator* subvalidator) = 0;
     virtual void DisallowedValue() = 0;
     virtual void StartDisallowedType() = 0;
     virtual void AddExpectedType(const typename SchemaType::ValueType& expectedType) = 0;
@@ -838,12 +840,12 @@ public:
         if (if_ && (then_ || else_)) {
             if (context.validators[ifValidatorIndex_]->IsValid()) {
                 if (then_ && !context.validators[thenValidatorIndex_]->IsValid()) {
-                    context.error_handler.Disallowed();
+                    context.error_handler.NotMatchThen(context.validators[thenValidatorIndex_]);
                     RAPIDJSON_INVALID_KEYWORD_RETURN(GetThenString());
                 }
             } else {
                 if (else_ && !context.validators[elseValidatorIndex_]->IsValid()) {
-                    context.error_handler.Disallowed();
+                    context.error_handler.NotMatchElse(context.validators[elseValidatorIndex_]);
                     RAPIDJSON_INVALID_KEYWORD_RETURN(GetElseString());
                 }
             }
@@ -2114,6 +2116,17 @@ public:
         currentError_ = error;
         AddCurrentError(SchemaType::GetDependenciesString());
         return true;
+    }
+
+    void NotMatchThen(ISchemaValidator* subvalidator) {
+        currentError_.SetObject();
+        currentError_.AddMember(GetErrorsString(), static_cast<GenericSchemaValidator*>(subvalidator)->GetError(), GetStateAllocator());
+        AddCurrentError(SchemaType::GetThenString());
+    }
+    void NotMatchElse(ISchemaValidator* subvalidator) {
+        currentError_.SetObject();
+        currentError_.AddMember(GetErrorsString(), static_cast<GenericSchemaValidator*>(subvalidator)->GetError(), GetStateAllocator());
+        AddCurrentError(SchemaType::GetElseString());
     }
 
     void DisallowedValue() {
